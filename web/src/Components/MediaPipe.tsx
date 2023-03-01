@@ -3,6 +3,10 @@ import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { Pose, Results, VERSION, POSE_CONNECTIONS } from "@mediapipe/pose";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { calculateDistanceMatrix } from "./utils/Calculator";
+import { mediaPipeConverter } from "./utils/Converter";
+import { Matrix } from "ml-matrix";
+import ResNet from "../TFModel/classifier";
 
 const Loading = styled.div`
   position: absolute;
@@ -38,6 +42,9 @@ const MediaPipe = () => {
   const inputVideoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
+
+  const [frame, setFrame] = useState<number[][]>([]);
+  const [tempFrame, setTempFrame] = useState<number[]>([]);
 
   useEffect(() => {
     if (!inputVideoReady) {
@@ -112,11 +119,29 @@ const MediaPipe = () => {
           color: "#FF0000",
           lineWidth: 2,
         });
+
+        const matrix = new Matrix(
+          calculateDistanceMatrix(mediaPipeConverter(landmarks))
+        )
+          .to2DArray()
+          .map((row, i) => row.slice(i + 1))
+          .flat();
+
+        setTempFrame(matrix);
       }
       contextRef.current.restore();
     }
-    // console.log(results.poseLandmarks);
   };
+  useEffect(() => {
+    if (tempFrame.length > 0) {
+      setFrame((prevFrame) => [...prevFrame, tempFrame].slice(-300));
+    }
+  }, [tempFrame]);
+
+  useEffect(() => {
+    const model = ResNet();
+    console.log(model.summary());
+  }, []);
 
   return (
     <PoseContainer>
