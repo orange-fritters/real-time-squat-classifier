@@ -1,0 +1,15 @@
+.App {
+  height: 95vh;
+  width: 97.5vw;
+  padding: 2.5vh 1.25vw;
+
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
+  grid-gap: 1.25vw;
+
+  background-color: #0f0f0f;
+
+  align-items: center;
+  justify-content: center;
+}
