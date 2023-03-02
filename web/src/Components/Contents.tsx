@@ -73,8 +73,11 @@ const ResultBackground = styled.div`
   margin-bottom: 30px;
 `;
 
-const Contents = () => {
-  const [squatCount, setSquatCount] = useState(3);
+interface ContentsProps {
+  squatCount: number;
+}
+
+const Contents = ({ squatCount }: ContentsProps) => {
   const [wrongCount, setWrongCount] = useState(1);
   const [squatResult, setSquatResult] = useState<string[]>([
     "GOOD",
