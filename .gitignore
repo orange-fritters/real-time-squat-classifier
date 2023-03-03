@@ -4,6 +4,8 @@
 /data
 data/
 .idea/
+web/.firebase/
+web/.firebaserc
 
 # dependencies
 web/node_modules/
@@ -26,3 +28,4 @@ web/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+web/.firebase/hosting.YnVpbGQ.cache
