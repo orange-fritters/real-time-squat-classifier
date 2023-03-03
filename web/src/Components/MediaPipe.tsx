@@ -98,7 +98,7 @@ const MediaPipe = ({
       });
 
       pose.setOptions({
-        modelComplexity: 1,
+        modelComplexity: 2,
         minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5,
       });
