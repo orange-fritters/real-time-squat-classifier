@@ -9,8 +9,8 @@ import { mediaPipeConverter } from "./utils/Converter";
 import { angleCalc } from "./utils/Angle";
 
 import { Matrix } from "ml-matrix";
-import ResNet from "../TFModel/classifier";
 import * as tf from "@tensorflow/tfjs";
+import { LayersModel } from "@tensorflow/tfjs";
 
 const Loading = styled.div`
   position: absolute;
@@ -41,9 +41,13 @@ const PoseContainer = styled.div`
 
 interface MediaPipeProps {
   increaseSquatCount: () => void;
+  handleSquatResult: (result: string) => void;
 }
 
-const MediaPipe = ({ increaseSquatCount }: MediaPipeProps) => {
+const MediaPipe = ({
+  increaseSquatCount,
+  handleSquatResult,
+}: MediaPipeProps) => {
   const [inputVideoReady, setInputVideoReady] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -57,11 +61,12 @@ const MediaPipe = ({ increaseSquatCount }: MediaPipeProps) => {
   const [angle, setAngle] = useState<number[]>([]);
   const [tempAngle, setTempAngle] = useState<number>(0);
 
-  const [init, setInit] = useState<boolean>(false);
+  // const [init, setInit] = useState<boolean>(false);
   const [countFrame, setCountFrame] = useState<number>(0);
   const [prevCount, setPrevCount] = useState<boolean>(false);
 
   const [inputData, setInputData] = useState<number[][]>([]);
+  const [model, setModel] = useState<LayersModel | null>(null);
 
   useEffect(() => {
     if (!inputVideoReady) {
@@ -143,17 +148,27 @@ const MediaPipe = ({ increaseSquatCount }: MediaPipeProps) => {
           .to2DArray()
           .map((row, i) => row.slice(i + 1))
           .flat();
-        // const max = Math.max(...matrix);
-        // const min = Math.min(...matrix);
-        // const normalizedMatrix = matrix.map((value) => {
-        //   return (value - min) / (max - min);
-        // });
         const angleOfFrame = angleCalc(landmarks);
         setTempFrame(matrix);
         setTempAngle(angleOfFrame);
       }
       contextRef.current.restore();
     }
+  };
+
+  const prepareData = (inputData: number[][]) => {
+    const inputTemp = tf.tensor(inputData) as tf.Tensor2D;
+    const repeatedData = tf
+      .tile(inputTemp, [1, Math.floor(300 / inputData.length)])
+      .reshape([171, -1, 1]) as tf.Tensor3D;
+    const resizedData = tf.image.resizeBilinear(repeatedData, [171, 300]);
+    const maxOfResizedData = tf.max(resizedData);
+    const minOfResizedData = tf.min(resizedData);
+    const normalizedResizedData = tf
+      .sub(resizedData, minOfResizedData)
+      .div(tf.sub(maxOfResizedData, minOfResizedData));
+    const modelInput = normalizedResizedData.reshape([1, 171, 300, 1]);
+    return modelInput;
   };
 
   useEffect(() => {
@@ -172,11 +187,11 @@ const MediaPipe = ({ increaseSquatCount }: MediaPipeProps) => {
       const lastFiveFalse = lastTenAngles.map((angle) => angle > -0.7);
       const toEnd = lastFiveFalse.every((angle) => angle === false);
 
-      setInit(tenFrameUnder);
+      // setInit(tenFrameUnder);
       if (tenFrameUnder || !toEnd) {
         setPrevCount(true);
         if (countFrame === 0) {
-          setInputData([...inputData, ...frame.slice(-20)]);
+          setInputData([...inputData, ...frame.slice(-20)].slice(-200));
         }
         setCountFrame((prevCount) => prevCount + 1);
         if (countFrame === 19) {
@@ -185,34 +200,30 @@ const MediaPipe = ({ increaseSquatCount }: MediaPipeProps) => {
       } else {
         if (prevCount) {
           increaseSquatCount();
-          /*
-          model processing
-          */
-          const model = ResNet();
-          const inputTemp = tf.tensor(inputData) as tf.Tensor2D;
-          const repeatedData = tf
-            .tile(inputTemp, [1, Math.floor(300 / inputData.length)])
-            .reshape([171, -1, 1]) as tf.Tensor3D;
-          const resizedData = tf.image.resizeBilinear(repeatedData, [171, 300]);
-          const modelInput = resizedData.reshape([1, 171, 300, 1]);
-          const prediction = model.predict(modelInput) as tf.Tensor2D;
-          console.log(prediction.toString());
-          setPrevCount(false);
+          if (model && inputData.length > 0) {
+            const modelInput = prepareData(inputData);
+            const prediction = model.predict(modelInput) as tf.Tensor1D;
+            setPrevCount(false);
+            console.log("prediction", prediction.dataSync());
+            handleSquatResult(
+              prediction.squeeze().argMax().arraySync().toString()
+            );
+          }
         }
         setInputData([]);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tempFrame]);
 
   useEffect(() => {
-    const model = ResNet();
-    const randomData = tf.randomNormal([171, 80, 1]);
-    const repeatedData = tf.tile(randomData, [1, 3, 1]) as tf.Tensor3D;
-    const inputDataTemp1 = tf.image.resizeBilinear(repeatedData, [171, 300]);
-    const inputDataTemp = inputDataTemp1.reshape([1, 171, 300, 1]);
-
-    const prediction = model.predict(inputDataTemp);
-    console.log("sample prediction", prediction.toString());
+    const PUBLIC_URL = process.env.PUBLIC_URL;
+    const loadModel = async () => {
+      const modelLoaded = await tf.loadLayersModel(PUBLIC_URL + "/model.json");
+      setModel(modelLoaded);
+      console.log(modelLoaded.summary());
+    };
+    loadModel();
   }, []);
 
   return (

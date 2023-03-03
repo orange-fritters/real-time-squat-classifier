@@ -1,6 +1,5 @@
 import React from "react";
-import styled from "styled-components";
-import { useState } from "react";
+import styled, { keyframes } from "styled-components";
 
 const ContentsContainer = styled.div`
   display: grid;
@@ -26,6 +25,7 @@ const TitleContainer = styled.div`
   border-radius: 10px;
   color: white;
   font-size: 2rem;
+  font-weight: 500;
 
   display: flex;
   align-items: center;
@@ -48,6 +48,46 @@ const NumberContainer = styled.span<{ color: string }>`
   height: 100%;
 `;
 
+const ResetContainer = styled.span<{ color: string }>`
+  background-color: ${(props) => props.color};
+  border-radius: 20px;
+  color: white;
+  font-size: 7rem;
+  font-weight: 700;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+
+  &:hover {
+    cursor: pointer;
+  }
+
+  &:active {
+    transform: scale(0.9);
+  }
+`;
+
+const slideInFromRight = keyframes`
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+`;
+
+const slideDownFromTop = keyframes`
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+`;
+
 const SquatResultContainer = styled.div`
   width: 100%;
   margin-top: 30px;
@@ -55,19 +95,29 @@ const SquatResultContainer = styled.div`
 
   gap: 30px;
   overflow-y: scroll;
+  overflow-x: hidden;
+
+  & > div:not(:first-child) {
+    animation: ${slideDownFromTop} 0.5s ease-in-out;
+  }
+
+  & > div:first-child {
+    animation: ${slideInFromRight} 0.5s ease-in-out;
+  }
 `;
 
-const ResultBackground = styled.div`
+const ResultBackground = styled.div<{ color: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100px;
 
-  color: white;
+  color: black;
+  font-weight: 600;
   font-size: 2rem;
 
-  background-color: #ffc03c;
+  background-color: ${(props) => props.color};
   border-radius: 20px;
 
   margin-bottom: 30px;
@@ -75,35 +125,37 @@ const ResultBackground = styled.div`
 
 interface ContentsProps {
   squatCount: number;
+  squatResults: string[];
+  handleReset: () => void;
 }
 
-const Contents = ({ squatCount }: ContentsProps) => {
-  const [wrongCount, setWrongCount] = useState(1);
-  const [squatResult, setSquatResult] = useState<string[]>([
-    "GOOD",
-    "GOOD",
-    "GOOD",
-    "BAD",
-    "GOOD",
-    "GOOD",
-    "GOOD",
-    "GOOD",
-    "BAD",
-    "GOOD",
-  ]);
-
+const Contents = ({ squatCount, squatResults, handleReset }: ContentsProps) => {
   return (
     <ContentsContainer>
       <CountsContainer>
         <TitleContainer>Counts</TitleContainer>
-        <TitleContainer>Wrongs</TitleContainer>
+        <TitleContainer>Reset</TitleContainer>
         <NumberContainer color="#00C39A">{squatCount}+</NumberContainer>
-        <NumberContainer color="#FE6D79">{wrongCount}</NumberContainer>
+        <ResetContainer color="#FE6D79" onClick={handleReset}>
+          ↻
+        </ResetContainer>
       </CountsContainer>
       <SquatResultContainer>
-        {squatResult.map((result, index) => (
-          <ResultBackground key={index}>{result}</ResultBackground>
-        ))}
+        {squatResults.map((result, index) =>
+          result === "Good" ? (
+            <ResultBackground
+              key={squatResults.length - index}
+              color={"#ffc03c"}>
+              {squatResults.length - index} {result}
+            </ResultBackground>
+          ) : (
+            <ResultBackground
+              key={squatResults.length - index}
+              color={"#f4403d"}>
+              {squatResults.length - index} {result}
+            </ResultBackground>
+          )
+        )}
       </SquatResultContainer>
     </ContentsContainer>
   );
