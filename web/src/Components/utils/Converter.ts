@@ -27,11 +27,20 @@ export const mediaPipeConverter = (data: NormalizedLandmarkList) => {
     (data[11].y + data[12].y) / 2,
     (data[11].z + data[12].z) / 2,
   ];
-  const head = [
+  const forehead = [
     (data[1].x + data[4].x) / 2,
     (data[1].y + data[4].y) / 2,
     (data[1].z + data[4].z) / 2,
   ];
+
+  const nose = [data[0].x, data[0].y, data[0].z];
+
+  const head = [
+    nose[0] + (forehead[0] - nose[0]) * 2,
+    nose[1] + (forehead[1] - nose[1]) * 2,
+    nose[2] + (forehead[2] - nose[2]) * 2,
+  ];
+
   result.push([data[28].x, data[28].y, data[28].z]);
   result.push([data[26].x, data[26].y, data[26].z]);
   result.push([data[24].x, data[24].y, data[24].z]);

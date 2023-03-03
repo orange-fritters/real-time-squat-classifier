@@ -7,6 +7,7 @@ import { Pose, Results, VERSION, POSE_CONNECTIONS } from "@mediapipe/pose";
 import { calculateDistanceMatrix } from "./utils/Calculator";
 import { mediaPipeConverter } from "./utils/Converter";
 import { angleCalc } from "./utils/Angle";
+import { visibilityChecker } from "./utils/VisibilityCheck";
 
 import { Matrix } from "ml-matrix";
 import * as tf from "@tensorflow/tfjs";
@@ -15,7 +16,7 @@ import { LayersModel } from "@tensorflow/tfjs";
 const Loading = styled.div`
   position: absolute;
   top: 50%;
-  left: 50%;
+  left: 30%;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
@@ -25,6 +26,8 @@ const Loading = styled.div`
   background-color: rgba(0, 0, 0, 0.5);
   width: 100%;
   height: 100%;
+  font-size: 2.75rem;
+  font-weight: 600;
   color: white;
 `;
 
@@ -42,11 +45,13 @@ const PoseContainer = styled.div`
 interface MediaPipeProps {
   increaseSquatCount: () => void;
   handleSquatResult: (result: string) => void;
+  handleVisibility: (result: boolean) => void;
 }
 
 const MediaPipe = ({
   increaseSquatCount,
   handleSquatResult,
+  handleVisibility,
 }: MediaPipeProps) => {
   const [inputVideoReady, setInputVideoReady] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -61,7 +66,9 @@ const MediaPipe = ({
   const [angle, setAngle] = useState<number[]>([]);
   const [tempAngle, setTempAngle] = useState<number>(0);
 
-  // const [init, setInit] = useState<boolean>(false);
+  const [visibility, setVisibility] = useState<boolean[]>([]);
+  const [tempVisibility, setTempVisibility] = useState<boolean>(false);
+
   const [countFrame, setCountFrame] = useState<number>(0);
   const [prevCount, setPrevCount] = useState<boolean>(false);
 
@@ -148,18 +155,22 @@ const MediaPipe = ({
           .to2DArray()
           .map((row, i) => row.slice(i + 1))
           .flat();
+
         const angleOfFrame = angleCalc(landmarks);
         setTempFrame(matrix);
         setTempAngle(angleOfFrame);
+        setTempVisibility(visibilityChecker(landmarks));
       }
       contextRef.current.restore();
     }
   };
 
   const prepareData = (inputData: number[][]) => {
-    const inputTemp = tf.tensor(inputData) as tf.Tensor2D;
+    const inputTemp = tf.tensor(inputData) as tf.Tensor2D; // 80, 171
+    const inputTempMirrored = tf.reverse(inputTemp, 1) as tf.Tensor2D;
+    const inputTempConcat = tf.concat([inputTemp, inputTempMirrored], 0);
     const repeatedData = tf
-      .tile(inputTemp, [1, Math.floor(300 / inputData.length)])
+      .tile(inputTempConcat, [1, Math.floor(600 / inputData.length)])
       .reshape([171, -1, 1]) as tf.Tensor3D;
     const resizedData = tf.image.resizeBilinear(repeatedData, [171, 300]);
     const maxOfResizedData = tf.max(resizedData);
@@ -173,15 +184,23 @@ const MediaPipe = ({
 
   useEffect(() => {
     // stack frame
+    setVisibility((prevVisibility) =>
+      [...prevVisibility, tempVisibility].slice(-100)
+    );
+
     if (tempFrame.length > 0) {
       setFrame((prevFrame) => [...prevFrame, tempFrame].slice(-100));
     }
     // stack angle
     if (tempAngle) {
-      setAngle((prevAngle) => [...prevAngle, tempAngle].slice(-100));
+      setAngle((prevAngle) => [...prevAngle, tempAngle].slice(-30));
     }
 
-    if (angle.length > 19) {
+    const detectionPossible =
+      visibility.filter((visibility) => visibility).length > 16;
+    handleVisibility(detectionPossible);
+
+    if (detectionPossible && angle.length > 19) {
       const lastTenAngles = angle.slice(-20);
       const tenFrameUnder = lastTenAngles.every((angle) => angle > -0.7);
       const lastFiveFalse = lastTenAngles.map((angle) => angle > -0.7);
@@ -201,6 +220,7 @@ const MediaPipe = ({
         if (prevCount) {
           increaseSquatCount();
           if (model && inputData.length > 0) {
+            // const modelInput = prepareFFTData(inputData);
             const modelInput = prepareData(inputData);
             const prediction = model.predict(modelInput) as tf.Tensor1D;
             setPrevCount(false);
@@ -221,7 +241,6 @@ const MediaPipe = ({
     const loadModel = async () => {
       const modelLoaded = await tf.loadLayersModel(PUBLIC_URL + "/model.json");
       setModel(modelLoaded);
-      console.log(modelLoaded.summary());
     };
     loadModel();
   }, []);

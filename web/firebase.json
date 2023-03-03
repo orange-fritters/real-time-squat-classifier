@@ -1,0 +1,13 @@
+{
+  "hosting": {
+    "site": "real-time-squat-classifier",
+    "public": "build",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
