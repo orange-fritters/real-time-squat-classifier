@@ -8,6 +8,7 @@ const ContentsContainer = styled.div`
   flex-direction: column;
   width: 100%;
   height: 95vh;
+  z-index: 100;
 `;
 
 const CountsContainer = styled.div`

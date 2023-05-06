@@ -182,6 +182,39 @@ const MediaPipe = ({
     return modelInput;
   };
 
+  const prepareFftData = (inputData: number[][]) => {
+    const inputTemp = tf.tensor(inputData) as tf.Tensor2D; // 80, 171
+    const inputTempMirrored = tf.reverse(inputTemp, 1) as tf.Tensor2D;
+    const inputTempConcat = tf.concat([inputTemp, inputTempMirrored], 0);
+    const repeatedData = tf
+      .tile(inputTempConcat, [1, Math.floor(600 / inputData.length)])
+      .reshape([171, -1, 1]) as tf.Tensor3D;
+    const resizedData = tf.image.resizeBilinear(repeatedData, [171, 300]);
+    const castedData = resizedData.cast("complex64");
+    const fftData = [];
+    for (let i = 0; i < 171; i++) {
+      console.log(castedData.slice([i, 0], [1, 300]).as1D().dataSync());
+      const fftRow = tf.spectral
+        .fft(castedData.slice([i, 0], [1, 300]))
+        .flatten();
+      const n = tf.range(0, 300, 1);
+      const samplingRate = 1 / 300;
+      const time = 300 / samplingRate;
+      const freq = tf.div(n, time);
+      const cycle = tf.div(tf.div(1, freq), 300).slice(1, 200);
+      const fftMagnitude = tf.abs(fftRow).slice([1], [200]);
+      const fftMagnitudeMaxIndex = fftMagnitude.as1D().argMax().dataSync()[0];
+      const cycleArgMaxed = cycle.dataSync()[fftMagnitudeMaxIndex];
+
+      console.log(tf.max(fftMagnitude).dataSync(), cycleArgMaxed);
+
+      fftData.push(fftRow);
+    }
+    const fftTensor = tf.stack(fftData).reshape([171, 300]);
+
+    return fftTensor;
+  };
+
   useEffect(() => {
     // stack frame
     setVisibility((prevVisibility) =>
@@ -218,11 +251,11 @@ const MediaPipe = ({
         }
       } else {
         if (prevCount) {
-          increaseSquatCount();
           if (model && inputData.length > 0) {
-            // const modelInput = prepareFFTData(inputData);
             const modelInput = prepareData(inputData);
+            // const modelInput = prepareFftData(inputData);
             const prediction = model.predict(modelInput) as tf.Tensor1D;
+            increaseSquatCount();
             setPrevCount(false);
             console.log("prediction", prediction.dataSync());
             handleSquatResult(

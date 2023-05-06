@@ -44,7 +44,9 @@ function App() {
         squatResults={squatResults}
         handleReset={handleReset}
       />
-      {!visibility && <VisibilityContainer>INVISIBLE!</VisibilityContainer>}
+      {!visibility && (
+        <VisibilityContainer>POSE NOT DETECTED</VisibilityContainer>
+      )}
     </div>
   );
 }
@@ -77,7 +79,7 @@ const VisibilityContainer = styled.div`
   opacity: 0.5;
   transform: translate(-50%, -50%);
 
-  width: 30%;
+  width: 40%;
   height: 10%;
   color: white;
   font-size: 3rem;
