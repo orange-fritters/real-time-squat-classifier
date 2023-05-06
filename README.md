@@ -5,7 +5,7 @@
 **Real Time Squat Classifying Service** built with React, TensorflowJS, MediaPipe, Firebase. Check out! https://real-time-squat-classifier.web.app/
 
 <div align="center">
-<img src=images/squat.gif width="320" height="200"/> <br> <br>
+<img src=images/squat.gif width="640" height="400"/> <br> <br>
 </div>
 
 ## Introduction
@@ -17,7 +17,9 @@ Recently, AI technology is conquering the field of video beyond images. Our team
 
 This project used the data from [https://hi.cs.waseda.ac.jp/~ogata/Dataset.html](https://hi.cs.waseda.ac.jp/~ogata/Dataset.html). The data consist of 7 labels of squat pose.
 
+<div align="center">
 <img src=images/data.png width="478" height="256" /><br> <br>
+</div>
 
 ## Model Architecture
 
@@ -27,7 +29,7 @@ Model architecture is like below. First model, called CID, we replaced average p
 <div align="center">
 <img src=./images/model.png width="522" height="195" />
 <div align="center">[Model 1] CID</div>
-<img src=./images/model2.Png width="522" height="170" />
+<img src=./images/model2.png width="522" height="170" />
 <div align="center">[Model 2] FFT</div>
 </div><br> <br>
 
@@ -49,7 +51,7 @@ We conducted an experiment to compare the reference model from the paper and our
 Gradcam result is like below.
 
 <div align="center">
-<img src=./images/gradcam.png width="420" height="122" />
+<img src=./images/gradcam.png width="630" height="182" />
 </div>
 
 ## Reference
